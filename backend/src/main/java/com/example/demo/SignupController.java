@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
-
+import jakarta.validation.Valid;
 // Spring 启动扫描到带这个注解的类，才会去 创建它的对象
 @RestController
 @CrossOrigin(origins = {"http://127.0.0.1:5500", "http://localhost:5500"})

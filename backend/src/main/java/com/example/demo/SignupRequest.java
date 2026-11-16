@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import java.util.List;
+import jakarta.validation.constraints.NotBlank;
 
 public record SignupRequest (
     @NotBlank String name,
