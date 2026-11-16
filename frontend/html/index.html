@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../css/index.css">
+</head>
+<body>
+    <!-- <form action="">,action作用是写表单默认提交时要跳转的地址 -->
+    <form id="signup-form">
+        <!-- for 里写对应 input 的 id -->
+        <label for="name">姓名：</label>
+        <input type="text" name="username" id="username" placeholder="点击输入">
+
+        <label for="major">专业班级：</label>
+        <input type="text" name="major" id="major" placeholder="点击输入">
+
+        <label>性别：</label>
+        <div class="options">
+            <!-- input 包在 label 里，点文字就能选中，不用写 for -->
+            <label>
+                <input type="radio" name="gender" value="男">男
+            </label>
+            <label>
+                <input type="radio" name="gender" value="女">女
+            </label>
+        </div>
+
+        <label>意向：</label>
+        <div class="options">
+            <label>
+                <input type="checkbox" name="interests" value="宣发">宣发
+            </label>
+            <label>
+                <input type="checkbox" name="interests" value="机器人">机器人
+            </label>
+            <label>
+                <input type="checkbox" name="interests" value="嵌入式">嵌入式
+            </label>
+            <label>
+                <input type="checkbox" name="interests" value="机械">机械
+            </label>
+        </div>
+
+        <button type="submit">提交</button>
+    </form>
+    <h2>报名列表</h2>
+    <ul id="signup-list"></ul>
+    <script>
+        const form = document.querySelector('#signup-form');
+        const signupList = document.querySelector('#signup-list');
+        // 声明一个函数，专门负责"取报名列表"。函数里要用 await，所以前面加 async。
+        async function loadSignups(){
+            const response = await fetch('http://localhost:8080/signups');
+            const signups = await response.json();
+            console.log(signups);
+
+            signupList.innerHTML = '';
+            // for (... of ...)：遍历可迭代对象，数组最常用
+            // of 取的是元素本身
+            // signups：被遍历的数组
+            // const signup：每一圈临时存放“当前这一条”的变量
+            // 循环体 { ... }：对当前这一条要做的事
+            for(const signup of signups) {
+                const li = document.createElement('li')
+                li.textContent = 
+                    signup.id + '|' +
+                    signup.name + '|' +
+                    signup.major + '|' +
+                    signup.gender + '|' +
+                    signup.interests.join('、');
+                signupList.append(li);
+            }
+        }
+        loadSignups();
+        // async:有了它，函数里才能用 await
+        form.addEventListener('submit', async (event) => {
+            // event.preventDefault():拦下表单的默认跳转
+            event.preventDefault();
+
+            // FormData是浏览器自带的一个类，不是方法
+            // 名称区分：
+                    // FormData：浏览器内置的类名，同时也是构造器的名字。
+                    // FormData(...)：构造器调用部分。
+                    // new FormData(form)：调用构造器、创建对象的完整表达式。
+                    // form：传给构造器的参数，表示要读取哪张表单。
+            // new FormData(form)和new Signup(...)是同一个道理：
+            // 根据这张表单创建一个对象formData，
+            // 表单里每个输入框的 name 作为键、用户填写的内容作为值，以键值对的形式被收集进去。
+            // 之后用get('name')取单个值，用getAll('interests')
+            // 注意：FormData特殊之处：同一个键可以对应多个值。
+                // 四个复选框的 name 都是 interests，勾了两个，就有两对 interests → 值。
+                // 所以 get('interests') 只能拿到第一个，getAll('interests') 才能拿到全部。
+            const formData = new FormData(form);
+            const signup = {
+                // formData.get(...)：读单个值
+                name: formData.get('username'),
+                major: formData.get('major'),
+                gender: formData.get('gender'),
+                // formData.getAll：都同名的所有勾选值，得到数组
+                interests: formData.getAll('interests'),
+            };
+
+            // try { } 里的代码一旦出错，就跳到 catch 里处理，而不是让整个脚本崩掉
+            try {
+                // fetch(..., { method, headers, body })：发 POST，内容是 JSON 字符串
+                // await：等服务器响应回来再往下执行，是真正负责“等待”的
+                // await 负责等待，async 负责允许等待
+                const response = await fetch('http://localhost:8080/signups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(signup),
+                });
+
+                // response.ok：状态码是2xx时为true
+                if (!response.ok) {
+                    // 1、response 是 fetch 返回的响应对象,status 是它的一个属性，
+                    // 存的就是状态码。
+                    // 2、response.status：具体存的值是多少，比如 200。
+                    // 和 signup.name() 一样，都是“对象.成员”的写法，“.”是“的”的意思
+                    // 值由浏览器根据服务器的响应填好。
+                    // 成员属于这个对象，但是成员分两种：
+                    // 一是属性：存数据，后面不加括号。比如 response.status、response.ok
+                    // 二是方法：是函数，后面加括号调用。比如 response.json()、form.reset()
+                    alert('提交失败：' + response.status);
+                    return;
+                }
+
+                const saved = await response.json();
+                alert('提交成功，报名编号：' + saved.id);
+                // form.reset():清空表单里填写的内容，方便填下一份
+                form.reset();
+                // 等这次重新查询和渲染全部完成，再结束当前提交处理。
+                await loadSignups();
+            } catch (error) {
+                alert('无法连接服务器');
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
