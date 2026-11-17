@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 // Spring 启动扫描到带这个注解的类，才会去 创建它的对象
 @RestController
@@ -48,8 +49,9 @@ public class SignupController {
 
     @PostMapping("/signups")
     // request：方法参数。
-    public Signup createSignup(@Valid @RequestBody SignupRequest request) {
-        return signupService.createSignup(request);
+    public ResponseEntity<Signup> createSignup(@Valid @RequestBody SignupRequest request) {
+        Signup created = signupService.createSignup(request);
+        return ResponseEntity.status(201).body(created);
     }
 }
 // 文件名含义：注册接口控制器，前端发注册请求，先到这个类，@PostMapping写在这里，接收请求、调用逻辑
